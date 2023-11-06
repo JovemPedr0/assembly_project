@@ -24,28 +24,40 @@ outputOut db "Insira o nome do arquivo para ser escrito: ", 0ah, 0h
 ;input
 inputFileIn db 50 dup(0)
 inputFileOut db 50 dup(0)
-inputHandle dd 0
 coordX dd 0
 coordY dd 0
 larguraIn dd 0
 alturaIn dd 0
+stringAux db 50 dup(0)
 
 ;handles
+inputHandle dd 0
 outputHandle dd 0
-fileBuffer dd 0 
-fileBuffer4k dd 6480 dup(0)
-bufferSize dd 0
+fileBuffer dd 6480 dup(0)
 fileHandle dd 0
 fileOutHandle dd 0
-readCount dd 0
-writeCount dd 0
 console_count dd 0
 
+readCount dd 0
+writeCount dd 0
+
 ;Variaveis auxiliares
-largImage dd 0
-tamLinha dd 0
+larguraImg dd 0
+tamanhoLin dd 0
+contador dd 0
 
 .code 
+trataString:
+    tratamento:
+        mov al, [esi]
+        inc esi
+        cmp al, 13
+        jne tratamento
+        dec esi
+        xor al, al
+        mov [esi], al
+        ret
+        
 censura:
     push esi        ; Salva o registrador esi (contador para armazenar o endereço do Array)
     push edi        ; Salva o registrador edi (contador para armazenar a coordenada do X da imagem)
@@ -67,7 +79,7 @@ censura:
         mov byte ptr [esi + edi + 1], 0 ;Censura pixel B
         mov byte ptr [esi + edi + 2], 0 ;Censura pixel B
 
-        invoke WriteFile, fileOutHandle, addr fileBuffer4k, tamLinha, addr writeCount, NULL ;
+        invoke WriteFile, fileOutHandle, addr fileBuffer, tamanhoLin, addr writeCount, NULL ;
         
         add edi, 3                      ;calcula o pixel
         
@@ -85,23 +97,13 @@ start:
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
 mov outputHandle, eax
-invoke WriteConsole, outputHandle, addr outputIn, sizeof outputIn, addr console_count, NULL
-
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
+
+invoke WriteConsole, outputHandle, addr outputIn, sizeof outputIn, addr console_count, NULL
 invoke ReadConsole, inputHandle, addr inputFileIn, sizeof inputFileIn, addr console_count, NULL
-
-; tratamento da string do arquivo de entrada
 mov esi, offset inputFileIn ;armazena apontador da string em esi
-    prxCaractereArqEntrada:
-        mov al, [esi] ;move o caractere atual para al
-        inc esi ;aponta para o proximo caractere
-        cmp al, 13 ;verifica se o caractere eh o ASCII CR - FINALIZAR
-        jne prxCaractereArqEntrada
-        dec esi ;aponta para o caractere anterior, onde o CR foi encontrado
-        xor al, al ;ASCII 0, terminador de string
-        mov [esi], al ;insere ASCII 0 no lugar do ASCII CR
-
+call trataString ;call function para tratar a string
 ; entrada de dados para o arquivo de saida
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
@@ -110,18 +112,13 @@ invoke WriteConsole, outputHandle, addr coordenadaX, sizeof coordenadaX, addr co
 
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
-invoke ReadConsole, inputHandle, addr coordX, sizeof coordX, addr console_count, NULL
+invoke ReadConsole, inputHandle, addr stringAux, sizeof stringAux, addr console_count, NULL
 
 ; tratamento da string do arquivo de entrada
-mov esi, offset coordX ;armazena apontador da string em esi
-    prxCaractereCoordX:
-        mov al, [esi] ;move o caractere atual para al
-        inc esi ;aponta para o proximo caractere
-        cmp al, 13 ;verifica se o caractere eh o ASCII CR - FINALIZAR
-        jne prxCaractereCoordX
-        dec esi ;aponta para o caractere anterior, onde o CR foi encontrado
-        xor al, al ;ASCII 0, terminador de string
-        mov [esi], al ;insere ASCII 0 no lugar do ASCII CR
+mov esi, offset stringAux ;armazena apontador da string em esi
+call trataString
+invoke atodw, addr stringAux
+mov coordX, eax
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
 mov outputHandle, eax
@@ -129,18 +126,13 @@ invoke WriteConsole, outputHandle, addr coordenadaY, sizeof coordenadaY, addr co
 
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
-invoke ReadConsole, inputHandle, addr coordY, sizeof coordY, addr console_count, NULL
+invoke ReadConsole, inputHandle, addr stringAux, sizeof stringAux, addr console_count, NULL
 
 ; tratamento da string do arquivo de entrada
-mov esi, offset coordY;armazena apontador da string em esi
-    prxCaractereCoordY:
-        mov al, [esi] ;move o caractere atual para al
-        inc esi ;aponta para o proximo caractere
-        cmp al, 13 ;verifica se o caractere eh o ASCII CR - FINALIZAR
-        jne prxCaractereCoordY
-        dec esi ;aponta para o caractere anterior, onde o CR foi encontrado
-        xor al, al ;ASCII 0, terminador de string
-        mov [esi], al ;insere ASCII 0 no lugar do ASCII CR
+mov esi, offset stringAux;armazena apontador da string em esi
+call trataString
+invoke atodw, addr stringAux
+mov coordY, eax
 
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
@@ -149,18 +141,13 @@ invoke WriteConsole, outputHandle, addr larguraOut, sizeof larguraOut, addr cons
 
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
-invoke ReadConsole, inputHandle, addr larguraIn, sizeof larguraIn, addr console_count, NULL
+invoke ReadConsole, inputHandle, addr stringAux, sizeof stringAux, addr console_count, NULL
 
 ; tratamento da string do arquivo de entrada
-mov esi, offset larguraIn;armazena apontador da string em esi
-    prxCaractereLargura:
-        mov al, [esi] ;move o caractere atual para al
-        inc esi ;aponta para o proximo caractere
-        cmp al, 13 ;verifica se o caractere eh o ASCII CR - FINALIZAR
-        jne prxCaractereLargura
-        dec esi ;aponta para o caractere anterior, onde o CR foi encontrado
-        xor al, al ;ASCII 0, terminador de string
-        mov [esi], al ;insere ASCII 0 no lugar do ASCII CR
+mov esi, offset stringAux;armazena apontador da string em esi
+call trataString
+invoke atodw, addr stringAux
+mov larguraIn, eax
 
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
@@ -169,18 +156,13 @@ invoke WriteConsole, outputHandle, addr alturaOut, sizeof alturaOut, addr consol
 
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
-invoke ReadConsole, inputHandle, addr alturaIn, sizeof alturaIn, addr console_count, NULL
+invoke ReadConsole, inputHandle, addr stringAux, sizeof stringAux, addr console_count, NULL
 
 ; tratamento da string do arquivo de saida
-mov esi, offset alturaIn ;armazena apontador da string em esi
-    prxCaractereAltura:
-        mov al, [esi] ; move o caractere atual para al
-        inc esi ; aponta para o proximo caractere
-        cmp al, 13 ; verifica se o caractere eh o ASCII CR - FINALIZAR
-        jne prxCaractereAltura
-        dec esi ; aponta para o caractere anterior, onde o CR foi encontrado
-        xor al, al ; ASCII 0, terminador de string
-        mov [esi], al ; insere ASCII 0 no lugar do ASCII CR
+mov esi, offset stringAux ;armazena apontador da string em esi
+call trataString
+invoke atodw, addr stringAux
+mov alturaIn, eax
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
 mov outputHandle, eax
@@ -192,14 +174,7 @@ invoke ReadConsole, inputHandle, addr inputFileOut, sizeof inputFileOut, addr co
 
 ; tratamento da string do arquivo de saida
 mov esi, offset inputFileOut ;armazena apontador da string em esi
-    prxCaractereArqSaida:
-        mov al, [esi] ; move o caractere atual para al
-        inc esi ; aponta para o proximo caractere
-        cmp al, 13 ; verifica se o caractere eh o ASCII CR - FINALIZAR
-        jne prxCaractereArqSaida
-        dec esi ; aponta para o caractere anterior, onde o CR foi encontrado
-        xor al, al ; ASCII 0, terminador de string
-        mov [esi], al ; insere ASCII 0 no lugar do ASCII CR
+call trataString
 
 ;abre arquivo
 invoke CreateFile, addr inputFileIn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL ; abre o arquivo para leitura
@@ -215,8 +190,8 @@ invoke WriteFile, fileOutHandle, addr fileBuffer, 18, addr writeCount, NULL ;
 
 ; Leitura dos 4 bytes da largura
 invoke ReadFile, fileHandle, addr fileBuffer, 4, addr readCount, NULL ;
-mov eax, fileBuffer
-mov largImage, eax
+mov ebx, fileBuffer
+mov larguraImg, ebx
 
 ; Escreve os 4 bytes da largura no novo arquivo
 invoke WriteFile, fileOutHandle, addr fileBuffer, 4, addr writeCount, NULL
@@ -226,24 +201,35 @@ invoke ReadFile, fileHandle, addr fileBuffer, 32, addr readCount, NULL ;
 invoke WriteFile, fileOutHandle, addr fileBuffer, 32, addr writeCount, NULL ;
 
 ;Multiplicando a largura da imagem por 3 pra pegar o tamanho da linha
-mov eax, largImage
+mov ebx, larguraImg
 mov ebx, 3
 mul ebx
-mov tamLinha, eax 
+mov tamanhoLin, ebx 
 
-copyLoop:
-        invoke ReadFile, fileHandle, addr fileBuffer4k, tamLinha, addr readCount, NULL ; 
-        cmp readCount, 0
-        je closeArq
-        mov esi, offset fileBuffer4k
-        mov edi, coordX
-        mov edx, largImage
-        call censura
-        invoke WriteFile, fileOutHandle, addr fileBuffer4k, tamLinha, addr writeCount, NULL ;
-        jmp copyLoop
+CopiaLoop:
+    cmp contador, ebx
+    jge CensuraLoop
+    invoke ReadFile, fileHandle, addr fileBuffer, tamanhoLin, addr readCount, NULL ; 
+    cmp readCount, 0
+    je fechaArq
+    invoke WriteFile, fileOutHandle, addr fileBuffer, tamanhoLin, addr writeCount, NULL ;
+    inc contador
+    jmp CopiaLoop
 
-    closeArq:
-        invoke CloseHandle, fileHandle ;fechando arquivo de entrada
-        invoke CloseHandle, fileOutHandle ;fechado arquivo de escrita
+CensuraLoop:
+    invoke ReadFile, fileHandle, addr fileBuffer, tamanhoLin, addr readCount, NULL
+    mov esi, offset fileBuffer
+    mov edi, coordX
+    mov ebx, larguraIn
+    call censura
+    mov ecx, alturaIn
+    cmp ecx, contador
+    je fechaArq
+    inc contador
+    jmp CensuraLoop
+
+fechaArq:
+    invoke CloseHandle, fileHandle ;fechando arquivo de entrada
+    invoke CloseHandle, fileOutHandle ;fechado arquivo de escrita
     invoke ExitProcess, 0
 end start

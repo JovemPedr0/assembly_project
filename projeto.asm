@@ -47,17 +47,6 @@ tamanhoLin dd 0
 contador dd 0
 
 .code 
-trataString:
-    tratamento:
-        mov al, [esi]
-        inc esi
-        cmp al, 13
-        jne tratamento
-        dec esi
-        xor al, al
-        mov [esi], al
-        ret
-        
 censura:
     push esi        ; Salva o registrador esi (contador para armazenar o endereço do Array)
     push edi        ; Salva o registrador edi (contador para armazenar a coordenada do X da imagem)
@@ -206,15 +195,12 @@ mov ebx, 3
 mul ebx
 mov tamanhoLin, ebx 
 
-CopiaLoop:
-    cmp contador, ebx
-    jge CensuraLoop
-    invoke ReadFile, fileHandle, addr fileBuffer, tamanhoLin, addr readCount, NULL ; 
-    cmp readCount, 0
-    je fechaArq
-    invoke WriteFile, fileOutHandle, addr fileBuffer, tamanhoLin, addr writeCount, NULL ;
-    inc contador
-    jmp CopiaLoop
+copyLoop:
+        invoke ReadFile, fileHandle, addr fileBuffer4k, tamLinha, addr readCount, NULL ; 
+        cmp readCount, 0
+        je closeArq
+        invoke WriteFile, fileOutHandle, addr fileBuffer4k, tamLinha, addr writeCount, NULL ;
+        jmp copyLoop
 
 CensuraLoop:
     invoke ReadFile, fileHandle, addr fileBuffer, tamanhoLin, addr readCount, NULL

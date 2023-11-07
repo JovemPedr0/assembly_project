@@ -47,40 +47,6 @@ tamanhoLin dd 0
 contador dd 0
 
 .code 
-censura:
-    push esi        ; Salva o registrador esi (contador para armazenar o endereço do Array)
-    push edi        ; Salva o registrador edi (contador para armazenar a coordenada do X da imagem)
-    push edx        ; Salva o registrador edx (largura da imagem)
-    push ebp        ; Salva o registrador ebp (topo da pilha)
-    mov ebp, esp    ; Configura o ponteiro de base da pilha
-
-    mov esi, DWORD PTR [ebp + 12] ;Endereço do Array
-    
-    mov edi, DWORD PTR [ebp + 8]  ;Coordenada inicial do X
-    imul edi, 3                   ;Calcula qual o byte inicial da Censura
-    
-    mov edx, DWORD PTR [ebp + 4]  ;Cordenada Final do X
-    imul edx, 3                   ;Calcula qual o tamanho em bytes da censura
-    add ecx, edi                  ;Calcula qual o Byte Final da Censura
-
-    applyCensura:
-        mov byte ptr [esi + edi + 0], 0 ;Censura pixel B
-        mov byte ptr [esi + edi + 1], 0 ;Censura pixel B
-        mov byte ptr [esi + edi + 2], 0 ;Censura pixel B
-
-        invoke WriteFile, fileOutHandle, addr fileBuffer, tamanhoLin, addr writeCount, NULL ;
-        
-        add edi, 3                      ;calcula o pixel
-        
-        cmp edi, edx                    ;valida se já chegou no final da censura
-        jl applyCensura
-
-    pop ebp ; Restaura o registrador ebx 
-    pop edx ; Restaura o registrador edx 
-    pop edi ; Restaura o registrador edi 
-    pop esi ; Restaura o registrador esi s
-    ret     ; Retorna a funçao
-
 start:
 ; entrada de dados para o arquivo original
 

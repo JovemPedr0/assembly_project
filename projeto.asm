@@ -15,10 +15,10 @@ include \masm32\macros\macros.asm
 
 .data 
 outputIn db "Insira o nome do arquivo para ser lido: ", 0ah, 0h
-coordenadaX db "Insira a coordenada x: ", 0ah, 0h
-coordenadaY db "Insira a coordenada y: ", 0ah, 0h
-larguraOut db "Insira a largura da censura: ", 0ah, 0h
-alturaOut db "Insira a altura da censura: ", 0ah, 0h
+outCoordX db "Insira a coordenada x: ", 0ah, 0h
+outCoordY db "Insira a coordenada y: ", 0ah, 0h
+outLargura db "Insira a largura da censura: ", 0ah, 0h
+outAltura db "Insira a altura da censura: ", 0ah, 0h
 outputOut db "Insira o nome do arquivo para ser escrito: ", 0ah, 0h
 
 ;input
@@ -27,13 +27,14 @@ inputFileOut db 50 dup(0)
 inputHandle dd 0
 coordX dd 0
 coordY dd 0
+countY dd 0
 larguraIn dd 0
 alturaIn dd 0
+strAux db 50 dup(0)
 
 ;handles
 outputHandle dd 0
-fileBuffer dd 0 
-fileBuffer4k dd 6480 dup(0)
+fileBuffer dd 6480 dup(0)
 bufferSize dd 0
 fileHandle dd 0
 fileOutHandle dd 0
@@ -53,31 +54,35 @@ censura:
     push ebp        ; Salva o registrador ebp (topo da pilha)
     mov ebp, esp    ; Configura o ponteiro de base da pilha
 
-    mov esi, DWORD PTR [ebp + 12] ;Endereço do Array
+    
+    mov esi, DWORD PTR [ebp + 12] ;Endereco do Array
     
     mov edi, DWORD PTR [ebp + 8]  ;Coordenada inicial do X
+
+
     imul edi, 3                   ;Calcula qual o byte inicial da Censura
     
     mov edx, DWORD PTR [ebp + 4]  ;Cordenada Final do X
+
+
     imul edx, 3                   ;Calcula qual o tamanho em bytes da censura
-    add ecx, edi                  ;Calcula qual o Byte Final da Censura
+    add edx, edi                  ;Calcula qual o Byte Final da Censura
+
 
     applyCensura:
         mov byte ptr [esi + edi + 0], 0 ;Censura pixel B
-        mov byte ptr [esi + edi + 1], 0 ;Censura pixel B
-        mov byte ptr [esi + edi + 2], 0 ;Censura pixel B
+        mov byte ptr [esi + edi + 1], 0 ;Censura pixel G
+        mov byte ptr [esi + edi + 2], 0 ;Censura pixel R
 
-        invoke WriteFile, fileOutHandle, addr fileBuffer4k, tamLinha, addr writeCount, NULL ;
-        
         add edi, 3                      ;calcula o pixel
         
         cmp edi, edx                    ;valida se já chegou no final da censura
         jl applyCensura
-
+    invoke WriteFile, fileOutHandle, addr fileBuffer, tamLinha, addr writeCount, NULL ;	
     pop ebp ; Restaura o registrador ebx 
     pop edx ; Restaura o registrador edx 
     pop edi ; Restaura o registrador edi 
-    pop esi ; Restaura o registrador esi s
+    pop esi ; Restaura o registrador esi
     ret     ; Retorna a funçao
 
 start:
@@ -106,14 +111,14 @@ mov esi, offset inputFileIn ;armazena apontador da string em esi
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
 mov outputHandle, eax
-invoke WriteConsole, outputHandle, addr coordenadaX, sizeof coordenadaX, addr console_count, NULL
+invoke WriteConsole, outputHandle, addr outCoordX, sizeof outCoordX, addr console_count, NULL
 
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
-invoke ReadConsole, inputHandle, addr coordX, sizeof coordX, addr console_count, NULL
+invoke ReadConsole, inputHandle, addr strAux, sizeof strAux, addr console_count, NULL
 
 ; tratamento da string do arquivo de entrada
-mov esi, offset coordX ;armazena apontador da string em esi
+mov esi, offset strAux ;armazena apontador da string em esi
     prxCaractereCoordX:
         mov al, [esi] ;move o caractere atual para al
         inc esi ;aponta para o proximo caractere
@@ -122,17 +127,19 @@ mov esi, offset coordX ;armazena apontador da string em esi
         dec esi ;aponta para o caractere anterior, onde o CR foi encontrado
         xor al, al ;ASCII 0, terminador de string
         mov [esi], al ;insere ASCII 0 no lugar do ASCII CR
+invoke atodw, addr strAux
+mov coordX, eax
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
 mov outputHandle, eax
-invoke WriteConsole, outputHandle, addr coordenadaY, sizeof coordenadaY, addr console_count, NULL
+invoke WriteConsole, outputHandle, addr outCoordY, sizeof outCoordY, addr console_count, NULL
 
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
-invoke ReadConsole, inputHandle, addr coordY, sizeof coordY, addr console_count, NULL
+invoke ReadConsole, inputHandle, addr strAux, sizeof strAux, addr console_count, NULL
 
 ; tratamento da string do arquivo de entrada
-mov esi, offset coordY;armazena apontador da string em esi
+mov esi, offset strAux;armazena apontador da string em esi
     prxCaractereCoordY:
         mov al, [esi] ;move o caractere atual para al
         inc esi ;aponta para o proximo caractere
@@ -141,15 +148,16 @@ mov esi, offset coordY;armazena apontador da string em esi
         dec esi ;aponta para o caractere anterior, onde o CR foi encontrado
         xor al, al ;ASCII 0, terminador de string
         mov [esi], al ;insere ASCII 0 no lugar do ASCII CR
-
+invoke atodw, addr strAux
+mov coordY, eax
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
 mov outputHandle, eax
-invoke WriteConsole, outputHandle, addr larguraOut, sizeof larguraOut, addr console_count, NULL
+invoke WriteConsole, outputHandle, addr outLargura, sizeof outLargura, addr console_count, NULL
 
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
-invoke ReadConsole, inputHandle, addr larguraIn, sizeof larguraIn, addr console_count, NULL
+invoke ReadConsole, inputHandle, addr strAux, sizeof strAux, addr console_count, NULL
 
 ; tratamento da string do arquivo de entrada
 mov esi, offset larguraIn;armazena apontador da string em esi
@@ -161,18 +169,19 @@ mov esi, offset larguraIn;armazena apontador da string em esi
         dec esi ;aponta para o caractere anterior, onde o CR foi encontrado
         xor al, al ;ASCII 0, terminador de string
         mov [esi], al ;insere ASCII 0 no lugar do ASCII CR
-
+invoke atodw, addr strAux
+mov larguraIn, eax
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
 mov outputHandle, eax
-invoke WriteConsole, outputHandle, addr alturaOut, sizeof alturaOut, addr console_count, NULL
+invoke WriteConsole, outputHandle, addr outAltura, sizeof outAltura, addr console_count, NULL
 
 invoke GetStdHandle, STD_INPUT_HANDLE
 mov inputHandle, eax
-invoke ReadConsole, inputHandle, addr alturaIn, sizeof alturaIn, addr console_count, NULL
+invoke ReadConsole, inputHandle, addr strAux, sizeof strAux, addr console_count, NULL
 
 ; tratamento da string do arquivo de saida
-mov esi, offset alturaIn ;armazena apontador da string em esi
+mov esi, offset strAux ;armazena apontador da string em esi
     prxCaractereAltura:
         mov al, [esi] ; move o caractere atual para al
         inc esi ; aponta para o proximo caractere
@@ -181,6 +190,8 @@ mov esi, offset alturaIn ;armazena apontador da string em esi
         dec esi ; aponta para o caractere anterior, onde o CR foi encontrado
         xor al, al ; ASCII 0, terminador de string
         mov [esi], al ; insere ASCII 0 no lugar do ASCII CR
+invoke atodw, addr strAux
+mov alturaIn, eax
 
 invoke GetStdHandle, STD_OUTPUT_HANDLE
 mov outputHandle, eax
@@ -232,14 +243,19 @@ mul ebx
 mov tamLinha, eax 
 
 copyLoop:
-        invoke ReadFile, fileHandle, addr fileBuffer4k, tamLinha, addr readCount, NULL ; 
+        invoke ReadFile, fileHandle, addr fileBuffer, tamLinha, addr readCount, NULL ; 
         cmp readCount, 0
         je closeArq
-        mov esi, offset fileBuffer4k
+            
+        mov esi, offset fileBuffer
         mov edi, coordX
-        mov edx, largImage
+        mov edx, larguraIn
+    
+        push larguraIn
+        push coordX
+
         call censura
-        invoke WriteFile, fileOutHandle, addr fileBuffer4k, tamLinha, addr writeCount, NULL ;
+
         jmp copyLoop
 
     closeArq:

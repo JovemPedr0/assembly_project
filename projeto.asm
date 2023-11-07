@@ -1,3 +1,6 @@
+; Pedro Lucas Valeriano de Mira - 20200015969
+; Wagner Dantas Garcia - 20190179139
+
 .686
 .model flat, stdcall
 option casemap :none
@@ -243,19 +246,52 @@ mul ebx
 mov tamLinha, eax 
 
 copyLoop:
+        ; Ler o Arquivo linha a linha
         invoke ReadFile, fileHandle, addr fileBuffer, tamLinha, addr readCount, NULL ; 
+        
+        ; Se a linha for vazia fecha
         cmp readCount, 0
         je closeArq
-            
-        mov esi, offset fileBuffer
+
+        ;Coloca coordY em Ebx 
+        xor ebx, ebx
+        add ebx, coordY
+
+        ;Verifica se O countY é menor que a coordY
+        cmp countY, ebx
+        jge callCensura
+        jl callLine
+        
+    callCensura:
+        ;Coloca coordY+alturaIn em Ebx 
+        xor ebx, ebx
+        add ebx, coordY
+        add ebx, alturaIn
+
+        ;Verifica se O countY é maior que a coordY+alturaIn
+        cmp countY, ebx
+        jge callLine
+     
+        ;Move os valores para os registradores para fazer a censura
+        mov esi, offset fileBuffer 
         mov edi, coordX
         mov edx, larguraIn
-    
-        push larguraIn
-        push coordX
-
+        
+        ;Chama a funcao para censurar
         call censura
 
+        ;Incremente o Y
+        inc countY
+        ; Reinicia o loop
+        jmp copyLoop
+        
+    callLine:
+        ; salva a linha sem censurar
+        invoke WriteFile, fileOutHandle, addr fileBuffer, tamLinha, addr writeCount, NULL ;
+        
+        ;Incremente o Y
+        inc countY
+        ; Reinicia o loop
         jmp copyLoop
 
     closeArq:
